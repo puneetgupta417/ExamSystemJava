@@ -2,8 +2,12 @@ package college;
 
 import java.awt.*;
 import javax.swing.*;
+
+import data.Data;
+
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.sql.SQLException;
 
 public class RegisterCollege extends JFrame implements ActionListener  {
 	
@@ -25,8 +29,9 @@ public class RegisterCollege extends JFrame implements ActionListener  {
 	private JTextField contactTextField = new JTextField();
 	private JTextArea addressTextArea = new JTextArea();
 	private ButtonGroup typeButtonGroup = new ButtonGroup();
-	private JRadioButton govtRadioButton = new JRadioButton("GOVT.");
+	private JRadioButton govtRadioButton = new JRadioButton("GOVT.",true);
 	private JRadioButton privateRadioButton = new JRadioButton("Private");
+	private JCheckBox closeOperationCheckBox = new JCheckBox("Close Form after Registration");
 	
 	Panel panel = new Panel();
 	private JButton btnSubmit = new JButton("Submit");
@@ -40,7 +45,7 @@ public class RegisterCollege extends JFrame implements ActionListener  {
 	int screenHeight = gd.getDisplayMode().getHeight();
 	int xScreen = (screenWidth*35)/100;
 	
-	
+	Data db = new Data();
 	
 	public RegisterCollege() {
 		Container c = getContentPane();
@@ -138,17 +143,75 @@ public class RegisterCollege extends JFrame implements ActionListener  {
 	}
 	
 	private void setButtons() {
-		btnSubmit.setBounds(xScreen+120, 450, 100, 30);
+		int y=450,w=100,h=30;
+		closeOperationCheckBox.setBounds(xScreen+120, y-40, w+100, h);
+		closeOperationCheckBox.setForeground(Color.WHITE);
+		panel.add(closeOperationCheckBox);
+		closeOperationCheckBox.setOpaque(false);
+		btnSubmit.setBounds(xScreen+120, y, w, h);
 		panel.add(btnSubmit);
-		btnCancel.setBounds(xScreen+250, 450,100,30);
+		btnCancel.setBounds(xScreen+250, y,w,h);
 		panel.add(btnCancel);
 		btnCancel.addActionListener(this);
+		btnSubmit.addActionListener(this);
 	}
 	
 	public void actionPerformed(ActionEvent e) {
 		if(e.getSource() == btnCancel)
 		{
 			this.dispose();
+			try {
+				db.con.close();
+			} catch (SQLException e1) {
+				e1.printStackTrace();
+			}
+		}
+		if(e.getSource() == btnSubmit)
+		{
+			String collegeId = collegeIdTextField.getText();
+			
+			
+			String seats = noOfSeatsTextField.getText();
+			String collegeName = collegeNameTextField.getText();
+			String location = locationTextField.getText();
+			String address = addressTextArea.getText();
+			String type;
+			if(govtRadioButton.isSelected())
+			{
+				type="G";
+			}
+			else {
+				type="P";
+			}
+			String contact = contactTextField.getText();
+			String trade = tradeTextField.getText();
+			if(collegeId.isEmpty() || seats.isEmpty() ||collegeName.isEmpty() || location.isEmpty() || address.isEmpty() || contact.isEmpty() || trade.isEmpty())
+			{
+				JOptionPane.showMessageDialog(null,"All fields are Required!","Invalid!",JOptionPane.WARNING_MESSAGE);
+			}
+			else if(!contactTextField.getText().matches("[0-9]+"))
+			{
+				JOptionPane.showMessageDialog(null,"Contact field can contain only numeric values","Error!",JOptionPane.ERROR_MESSAGE);
+			}
+			else if(!noOfSeatsTextField.getText().matches("[0-9]+"))
+			{
+				JOptionPane.showMessageDialog(null,"No. of Seats field can contain only numeric values","Error!",JOptionPane.ERROR_MESSAGE);
+			}
+			else
+			{
+				
+				try {
+					db.executeUpdate("insert into college(collegeId,collegeName,location,address,type,contact,trade,seats) values("+Integer.parseInt(collegeId)+",'"+collegeName+"','"+location+"','"+address+"','"+type+"','"+contact+"','"+trade+"',"+Integer.parseInt(seats)+");");
+					JOptionPane.showMessageDialog(this, "Inserted Successfully");
+				} catch (SQLException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+			if(closeOperationCheckBox.isSelected())
+			{
+				this.dispose();
+			}
 		}
 	}
 	

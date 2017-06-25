@@ -3,9 +3,13 @@ package student;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.sql.*;
 
 import javax.swing.*;
 import javax.swing.event.*;
+
+import data.Data;
+
 
 public class RegisterStudent extends JFrame implements ActionListener {
 
@@ -150,12 +154,54 @@ public class RegisterStudent extends JFrame implements ActionListener {
 		btnCancel.setBounds(xScreen+250, 600,100,30);
 		panel.add(btnCancel);
 		btnCancel.addActionListener(this);
+		btnSubmit.addActionListener(this);
 	}
 	
 	public void actionPerformed(ActionEvent e) {
 		if(e.getSource() == btnCancel)
 		{
 			this.dispose();
+		}
+		if(e.getSource() == btnSubmit)
+		{
+			String studentId = studentIdTextField.getText();
+			String studentName = studentNameTextField.getText();
+			String fatherName = fatherNameTextField.getText();
+			String motherName = motherNameTextField.getText();
+			String gender;
+			if(maleRadioButton.isSelected())
+			{
+				gender = "M";
+			}
+			else{
+				gender = "F";
+			}
+			String DOB = DOBTextField.getText();
+			String address = addressTextArea.getText();
+			String contact = contactTextField.getText();
+//			int testId = Integer.valueOf(testComboBox.getSelectedIndex());
+			int testId = 1;
+			String rank = rankTextField.getText();
+//			String category = categoryComboBox.getSelectedItem().toString();
+			String category = "general";
+			String remarks = remarksTextArea.getText();
+//			Data obj = new Data();
+			Connection con;
+			Statement smt;
+			try {
+				Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
+				con=DriverManager.getConnection("jdbc:ucanaccess://database.accdb");
+				smt=con.createStatement();
+				smt.executeUpdate("insert into student(studentId,studentName,fatherName,motherName,gender,DOB,address,contact,testId,rank,category,remarks) values("+studentId+",'"+studentName+"','"+fatherName+"','"+motherName+"','"+gender+"','"+DOB+"','"+address+"','"+contact+"',"+testId+",'"+rank+"','"+category+"','"+remarks+"');");
+				con.close();
+				JOptionPane op=new JOptionPane();
+				op.showMessageDialog(this,"Your Data is Updated");
+				this.dispose();
+			} 
+			catch(Exception e1)
+			{
+				System.out.println("hi"+e1);
+			}
 		}
 	}
 	

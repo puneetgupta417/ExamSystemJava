@@ -4,8 +4,13 @@ import java.awt.*;
 import javax.swing.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.Arrays;
 
-public class DeleteUser extends JFrame implements ActionListener  {
+public class DeleteUser extends JFrame implements ActionListener,ItemListener  {
 	
 	private String[] labelsName = {"User ID",
 			"Username",
@@ -23,7 +28,7 @@ public class DeleteUser extends JFrame implements ActionListener  {
 	private JTextField fullNameTextField = new JTextField();
 	private JTextField designationTextField = new JTextField();
 	private JTextArea remarksTextArea = new JTextArea();
-	
+	private JCheckBox closeOperationCheckBox = new JCheckBox("Close Form after Deletion");
 	Panel panel = new Panel();
 	private JButton btnSubmit = new JButton("Delete");
 	private JButton btnCancel = new JButton("Cancel");
@@ -43,12 +48,12 @@ public class DeleteUser extends JFrame implements ActionListener  {
 		panel.setLayout(null);
 		panel.setSize(screenWidth,screenHeight);
 		
-		ImageIcon icon = new ImageIcon("images//user.jpg");
+		ImageIcon icon = new ImageIcon("images//userBlack.jpg");
 		Image img = icon.getImage();
 		BufferedImage bi = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
 		Graphics g = bi.createGraphics();
-		float opacity = 0.5f;
-		((Graphics2D) g).setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
+//		float opacity = 0.5f;
+//		((Graphics2D) g).setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
 		g.drawImage(img, 0, 0, screenWidth, screenHeight, null);
 		ImageIcon newIcon = new ImageIcon(bi);
 		
@@ -81,6 +86,7 @@ public class DeleteUser extends JFrame implements ActionListener  {
 		printLabels();
 		setFields();
 		setButtons();
+		addId();
 		panel.add(backgroundImage);
 		
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -123,11 +129,77 @@ public class DeleteUser extends JFrame implements ActionListener  {
 	}
 	
 	private void setButtons() {
-		btnSubmit.setBounds(xScreen+120, 400, 100, 30);
+		int y=400,w=100,h=30;
+		closeOperationCheckBox.setBounds(xScreen+120, y-40, w+100, h);
+		closeOperationCheckBox.setForeground(Color.WHITE);
+		panel.add(closeOperationCheckBox);
+		closeOperationCheckBox.setOpaque(false);
+		btnSubmit.setBounds(xScreen+120, y, w, h);
 		panel.add(btnSubmit);
-		btnCancel.setBounds(xScreen+250, 400,100,30);
+		btnCancel.setBounds(xScreen+250, y,w,h);
 		panel.add(btnCancel);
 		btnCancel.addActionListener(this);
+		btnSubmit.addActionListener(this);
+	}
+	
+	public void addId() {
+		Connection con;
+		Statement smt;
+		ResultSet rs;
+		try {
+			Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
+			con=DriverManager.getConnection("jdbc:ucanaccess://database.accdb");
+			smt=con.createStatement();
+			rs =smt.executeQuery("select userId from user");
+			while(rs.next())
+			{
+			userIdTextField.addItem(String.valueOf(rs.getInt(1)));
+			}
+			userIdTextField.addItemListener(this);
+			con.close();
+		} 
+		catch(Exception e1) 
+		{
+			System.out.println("hi"+e1);
+		}
+		updateFieldsByUserId();
+	}
+	
+	public void delete() {
+		// Get Details
+		String username = userNameTextField.getText();
+		String password = String.valueOf(passwordField.getPassword());
+		String fullName = fullNameTextField.getText();
+		String designation = designationTextField.getText();
+		String remarks = remarksTextArea.getText();
+		
+		Connection con;
+		Statement smt;
+		try {
+			Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
+			con=DriverManager.getConnection("jdbc:ucanaccess://database.accdb");
+			smt=con.createStatement();
+			smt.executeUpdate("delete from user where userId="+userIdTextField.getSelectedItem());
+			con.close();
+//			JOptionPane op=new JOptionPane();
+//			op.showMessageDialog(this,"Your Data is Deleted Successfully");
+			if(closeOperationCheckBox.isSelected())
+			{
+				this.dispose();
+			}
+			else {
+//				revalidate();
+				confirmPasswordField.setText("");
+				userIdTextField.removeAllItems();
+				addId();
+				updateFieldsByUserId();
+			}
+			
+		} 
+		catch(Exception e1) 
+		{
+			System.out.println("hi"+e1);
+		}
 	}
 	
 	public void actionPerformed(ActionEvent e) {
@@ -135,7 +207,59 @@ public class DeleteUser extends JFrame implements ActionListener  {
 		{
 			this.dispose();
 		}
+		if(e.getSource() == btnSubmit)
+		{
+			if(!(Arrays.equals(passwordField.getPassword(), confirmPasswordField.getPassword())))
+			{
+				JOptionPane pwdDialog= new JOptionPane();
+				pwdDialog.showMessageDialog(this, "Password Doesn't match");
+			}
+			else {
+				int confirm = JOptionPane.showConfirmDialog(null, "Do you really want to Delete?","Delete",JOptionPane.YES_NO_OPTION);
+				if(confirm == 0)
+				{
+					delete();
+				}
+				
+			}
+		}
 	}
+
+	public void updateFieldsByUserId()
+	{
+		Connection con;
+		Statement smt;
+		ResultSet rs;
+		try {
+			Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
+			con=DriverManager.getConnection("jdbc:ucanaccess://database.accdb");
+			smt=con.createStatement();
+			rs=smt.executeQuery("select * from user where userId="+userIdTextField.getSelectedItem());
+			rs.next();
+			userNameTextField.setText(rs.getString(3));
+			passwordField.setText(rs.getString(4));
+			fullNameTextField.setText(rs.getString(5));
+			designationTextField.setText(rs.getString(6));
+			remarksTextArea.setText(rs.getString(7));
+			
+			con.close();
+		} 
+		catch(Exception e1) 
+		{
+			System.out.println("hi"+e1);
+		}
+	}
+
+	@Override
+	public void itemStateChanged(ItemEvent e) {
+		if(e.getSource() == userIdTextField)
+		{
+			updateFieldsByUserId();
+		}
+		
+		
+	}
+
 	
 	
 	

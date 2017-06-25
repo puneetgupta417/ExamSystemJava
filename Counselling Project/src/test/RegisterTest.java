@@ -11,8 +11,11 @@ import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.sql.SQLException;
 
 import javax.swing.*;
+
+import data.Data;
 
 public class RegisterTest extends JFrame implements ActionListener {
 	
@@ -28,6 +31,7 @@ public class RegisterTest extends JFrame implements ActionListener {
 	private JTextField testIdTextField = new JTextField();
 	private JTextField testNameTextField = new JTextField();
 	private JTextArea remarksTextArea = new JTextArea();
+	private JCheckBox closeOperationCheckBox = new JCheckBox("Close Form after Registration");
 	
 	private Font labelsFont = new Font("Arial",Font.BOLD,16);
 	
@@ -36,17 +40,17 @@ public class RegisterTest extends JFrame implements ActionListener {
 	int screenWidth = gd.getDisplayMode().getWidth();
 	int screenHeight = gd.getDisplayMode().getHeight();
 	int xScreen = (screenWidth*35)/100;
-	
+	Data db = new Data();
 	public RegisterTest() {
 
 //		JFrame frame = new JFrame("Student Application");
 		
-		ImageIcon icon = new ImageIcon("images//test.jpg");
+		ImageIcon icon = new ImageIcon("images//testBlack.jpg");
 		Image img = icon.getImage();
 		BufferedImage bi = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
 		Graphics g = bi.createGraphics();
-		float opacity = 0.5f;
-		((Graphics2D) g).setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
+//		float opacity = 0.5f;
+//		((Graphics2D) g).setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
 		g.drawImage(img, 0, 0, screenWidth, screenHeight, null);
 		ImageIcon newIcon = new ImageIcon(bi);
 		
@@ -70,7 +74,7 @@ public class RegisterTest extends JFrame implements ActionListener {
 		setResizable(false);
 		setSize(screenWidth,screenHeight);
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		
+	
 	}
 	
 	private void printLabels() {
@@ -102,17 +106,40 @@ public class RegisterTest extends JFrame implements ActionListener {
 	}
 	
 	private void setButtons() {
-		btnSubmit.setBounds(xScreen+120, 250, 100, 30);
+		int y=250,w=100,h=30;
+		closeOperationCheckBox.setBounds(xScreen+120, y-40, w+100, h);
+		closeOperationCheckBox.setForeground(Color.WHITE);
+		panel.add(closeOperationCheckBox);
+		closeOperationCheckBox.setOpaque(false);
+		btnSubmit.setBounds(xScreen+120, y, w, h);
 		panel.add(btnSubmit);
-		btnCancel.setBounds(xScreen+250, 250,100,30);
+		btnCancel.setBounds(xScreen+250, y,w,h);
 		panel.add(btnCancel);
 		btnCancel.addActionListener(this);
+		btnSubmit.addActionListener(this);
 	}
 	
 	public void actionPerformed(ActionEvent e) {
 		if(e.getSource() == btnCancel)
 		{
 			this.dispose();
+		}
+		if(e.getSource() == btnSubmit)
+		{
+			int testId = Integer.parseInt(testIdTextField.getText());
+			String testName = testNameTextField.getText();
+			String remarks = remarksTextArea.getText();
+			try {
+				db.executeUpdate("insert into test(testId,testName,remarks) values("+testId+",'"+testName+"','"+remarks+"');");
+				JOptionPane.showMessageDialog(this, "Inserted Successfully");
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			if(closeOperationCheckBox.isSelected())
+			{
+				this.dispose();
+			}
 		}
 	}
 	

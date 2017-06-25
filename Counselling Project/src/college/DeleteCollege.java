@@ -2,10 +2,15 @@ package college;
 
 import java.awt.*;
 import javax.swing.*;
+
+import data.Data;
+
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
-public class DeleteCollege extends JFrame implements ActionListener  {
+public class DeleteCollege extends JFrame implements ActionListener,ItemListener  {
 	
 	private String[] labelsName = {"College ID",
 			"College Name",
@@ -27,7 +32,7 @@ public class DeleteCollege extends JFrame implements ActionListener  {
 	private ButtonGroup typeButtonGroup = new ButtonGroup();
 	private JRadioButton govtRadioButton = new JRadioButton("GOVT.");
 	private JRadioButton privateRadioButton = new JRadioButton("Private");
-	
+	private JCheckBox closeOperationCheckBox = new JCheckBox("Close Form after Deletion");
 	Panel panel = new Panel();
 	private JButton btnSubmit = new JButton("Delete");
 	private JButton btnCancel = new JButton("Cancel");
@@ -40,7 +45,7 @@ public class DeleteCollege extends JFrame implements ActionListener  {
 	int screenHeight = gd.getDisplayMode().getHeight();
 	int xScreen = (screenWidth*35)/100;
 	
-	
+	Data db = new Data();
 	
 	public DeleteCollege() {
 		Container c = getContentPane();
@@ -83,6 +88,7 @@ public class DeleteCollege extends JFrame implements ActionListener  {
 		printLabels();
 		setFields();
 		setButtons();
+		addId();
 		panel.add(backgroundImage);
 		
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -135,14 +141,106 @@ public class DeleteCollege extends JFrame implements ActionListener  {
 		govtRadioButton.setForeground(Color.WHITE);
 		privateRadioButton.setForeground(Color.WHITE);
 		privateRadioButton.setOpaque(false);
+		
+		collegeNameTextField.setEditable(false);
+		locationTextField.setEditable(false);
+		addressTextArea.setEditable(false);
+		contactTextField.setEditable(false);
+		tradeTextField.setEditable(false);
+		noOfSeatsTextField.setEditable(false);
+		govtRadioButton.setEnabled(false);
+		privateRadioButton.setEnabled(false);
+		
+		collegeIdTextField.addItemListener(this);
 	}
 	
 	private void setButtons() {
-		btnSubmit.setBounds(xScreen+120, 450, 100, 30);
+		int y=450,w=100,h=30;
+		closeOperationCheckBox.setBounds(xScreen+120, y-40, w+100, h);
+		closeOperationCheckBox.setForeground(Color.WHITE);
+		panel.add(closeOperationCheckBox);
+		closeOperationCheckBox.setOpaque(false);
+		btnSubmit.setBounds(xScreen+120, y, w, h);
 		panel.add(btnSubmit);
-		btnCancel.setBounds(xScreen+250, 450,100,30);
+		btnCancel.setBounds(xScreen+250, y,w,h);
 		panel.add(btnCancel);
 		btnCancel.addActionListener(this);
+		btnSubmit.addActionListener(this);
+	}
+	
+	
+	
+	public void updateFields() {
+		String sql = "select * from college where collegeId="+collegeIdTextField.getSelectedItem();
+		try {
+			ResultSet result = db.executeQuery(sql);
+			result.next();
+			collegeNameTextField.setText(result.getString(3));
+			locationTextField.setText(result.getString(4));
+			addressTextArea.setText(result.getString(5));
+			String type = result.getString(6);
+			if(type.equals("G"))
+			{
+				govtRadioButton.setSelected(true);
+			}
+			else {
+				privateRadioButton.setSelected(true);
+			}
+			contactTextField.setText(result.getString(7));
+			tradeTextField.setText(result.getString(8));
+			noOfSeatsTextField.setText(result.getString(9));
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} 
+		
+	}
+	
+	public void addId()
+	{
+		String sql="select collegeId from college";
+		ResultSet result;
+		try {
+			result = db.executeQuery(sql);
+			while(result.next())
+			{
+				collegeIdTextField.addItem(String.valueOf(result.getString(1)));
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		updateFields();
+	}
+	
+	public void delete()
+	{
+		
+			try {
+				int message = JOptionPane.showConfirmDialog(null, "Are you really want to Delete?","Confirm Delete",JOptionPane.YES_NO_OPTION);
+				if(message == 0)
+				{
+				db.executeUpdate("delete from college where collegeId="+collegeIdTextField.getSelectedItem());
+				if(closeOperationCheckBox.isSelected())
+				{
+					this.dispose();
+					try {
+						db.con.close();
+					} catch (SQLException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				}
+				else {
+					collegeIdTextField.removeAllItems();
+					addId();
+					updateFields();
+				}
+				}
+	//			JOptionPane.showMessageDialog(this, "Altered Successfully");
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 	}
 	
 	public void actionPerformed(ActionEvent e) {
@@ -150,8 +248,21 @@ public class DeleteCollege extends JFrame implements ActionListener  {
 		{
 			this.dispose();
 		}
+		if(e.getSource() == btnSubmit)
+		{
+			delete();
+			
+		}
 	}
-	
+
+	@Override
+	public void itemStateChanged(ItemEvent e) {
+		if(e.getSource() == collegeIdTextField)
+		{
+			updateFields();
+		}
+		
+	}
 
 }
 

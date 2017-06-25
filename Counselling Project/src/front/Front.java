@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.event.*;
 import javax.swing.*;
+import java.sql.*;
 
 import college.RegisterCollege;
 import college.AlterCollege;

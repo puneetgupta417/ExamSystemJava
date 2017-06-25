@@ -4,6 +4,10 @@ import java.awt.*;
 import javax.swing.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.util.Arrays;
 
 public class RegisterUser extends JFrame implements ActionListener  {
 	
@@ -23,6 +27,7 @@ public class RegisterUser extends JFrame implements ActionListener  {
 	private JTextField fullNameTextField = new JTextField();
 	private JTextField designationTextField = new JTextField();
 	private JTextArea remarksTextArea = new JTextArea();
+	private JCheckBox closeOperationCheckBox = new JCheckBox("Close Form after Registration");
 	
 	Panel panel = new Panel();
 	private JButton btnSubmit = new JButton("Register");
@@ -43,12 +48,12 @@ public class RegisterUser extends JFrame implements ActionListener  {
 		panel.setLayout(null);
 		panel.setSize(screenWidth,screenHeight);
 		
-		ImageIcon icon = new ImageIcon("images//user.jpg");
+		ImageIcon icon = new ImageIcon("images//userBlack.jpg");
 		Image img = icon.getImage();
 		BufferedImage bi = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
 		Graphics g = bi.createGraphics();
-		float opacity = 0.5f;
-		((Graphics2D) g).setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
+//		float opacity = 0.5f;
+//		((Graphics2D) g).setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
 		g.drawImage(img, 0, 0, screenWidth, screenHeight, null);
 		ImageIcon newIcon = new ImageIcon(bi);
 		
@@ -105,6 +110,7 @@ public class RegisterUser extends JFrame implements ActionListener  {
 		fullNameTextField.setBounds(x,y+(4*spacing),width,height);
 		designationTextField.setBounds(x,y+(5*spacing),width,height);
 		remarksTextArea.setBounds(x,y+(6*spacing),width,height+25);
+//		closeOperationCheckBox.setBounds(x-50,y+(7*spacing)+height,width+100,height+25);
 		panel.add(userIdTextField);
 		panel.add(userNameTextField);
 		panel.add(passwordField);
@@ -112,20 +118,67 @@ public class RegisterUser extends JFrame implements ActionListener  {
 		panel.add(fullNameTextField);
 		panel.add(designationTextField);
 		panel.add(remarksTextArea);
+		
 	}
 	
 	private void setButtons() {
-		btnSubmit.setBounds(xScreen+120, 400, 100, 30);
+		int y=400,w=100,h=30;
+		closeOperationCheckBox.setBounds(xScreen+120, y-40, w+100, h);
+		closeOperationCheckBox.setForeground(Color.WHITE);
+		panel.add(closeOperationCheckBox);
+		closeOperationCheckBox.setOpaque(false);
+		btnSubmit.setBounds(xScreen+120, y, w, h);
 		panel.add(btnSubmit);
-		btnCancel.setBounds(xScreen+250, 400,100,30);
+		btnCancel.setBounds(xScreen+250, y,w,h);
 		panel.add(btnCancel);
 		btnCancel.addActionListener(this);
+		btnSubmit.addActionListener(this);
+	}
+	
+	public void register() {
+		int userId = Integer.parseInt(userIdTextField.getText());
+		String username = userNameTextField.getText();
+		String password = String.valueOf(passwordField.getPassword());
+		String fullName = fullNameTextField.getText();
+		String designation = designationTextField.getText();
+		String remarks = remarksTextArea.getText();
+		Connection con;
+		Statement smt;
+		try {
+			Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
+			con=DriverManager.getConnection("jdbc:ucanaccess://database.accdb");
+			smt=con.createStatement();
+			smt.executeUpdate("insert into user(userId,username,password,fullName,designation,remarks) values("+userId+",'"+username+"','"+password+"','"+fullName+"','"+designation+"','"+remarks+"');");
+			con.close();
+			JOptionPane op=new JOptionPane();
+			op.showMessageDialog(this,"Your Data is Updated");
+			if(closeOperationCheckBox.isSelected())
+			{
+				this.dispose();
+			}
+			
+		} 
+		catch(Exception e1) 
+		{
+			System.out.println("hi"+e1);
+		}
 	}
 	
 	public void actionPerformed(ActionEvent e) {
 		if(e.getSource() == btnCancel)
 		{
 			this.dispose();
+		}
+		if(e.getSource() == btnSubmit)
+		{
+			if(!(Arrays.equals(passwordField.getPassword(), confirmPasswordField.getPassword())))
+			{
+				JOptionPane pwdDialog= new JOptionPane();
+				pwdDialog.showMessageDialog(this, "Password Doesn't match");
+			}
+			else {
+				register();
+			}
 		}
 	}
 	

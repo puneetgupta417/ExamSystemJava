@@ -2,10 +2,15 @@ package college;
 
 import java.awt.*;
 import javax.swing.*;
+
+import data.Data;
+
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
-public class AlterCollege extends JFrame implements ActionListener  {
+public class AlterCollege extends JFrame implements ActionListener,ItemListener  {
 	
 	private String[] labelsName = {"College ID",
 			"College Name",
@@ -27,6 +32,7 @@ public class AlterCollege extends JFrame implements ActionListener  {
 	private ButtonGroup typeButtonGroup = new ButtonGroup();
 	private JRadioButton govtRadioButton = new JRadioButton("GOVT.");
 	private JRadioButton privateRadioButton = new JRadioButton("Private");
+	private JCheckBox closeOperationCheckBox = new JCheckBox("Close Form after Alteration");
 	
 	Panel panel = new Panel();
 	private JButton btnSubmit = new JButton("Alter");
@@ -40,6 +46,7 @@ public class AlterCollege extends JFrame implements ActionListener  {
 	int screenHeight = gd.getDisplayMode().getHeight();
 	int xScreen = (screenWidth*35)/100;
 	
+	Data db = new Data();
 	
 	
 	public AlterCollege() {
@@ -83,6 +90,7 @@ public class AlterCollege extends JFrame implements ActionListener  {
 		printLabels();
 		setFields();
 		setButtons();
+		addId();
 		panel.add(backgroundImage);
 		
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -135,14 +143,121 @@ public class AlterCollege extends JFrame implements ActionListener  {
 		govtRadioButton.setForeground(Color.WHITE);
 		privateRadioButton.setForeground(Color.WHITE);
 		privateRadioButton.setOpaque(false);
+		
+		collegeIdTextField.addItemListener(this);
 	}
 	
 	private void setButtons() {
-		btnSubmit.setBounds(xScreen+120, 450, 100, 30);
+		int y=450,w=100,h=30;
+		closeOperationCheckBox.setBounds(xScreen+120, y-40, w+100, h);
+		closeOperationCheckBox.setForeground(Color.WHITE);
+		panel.add(closeOperationCheckBox);
+		closeOperationCheckBox.setOpaque(false);
+		btnSubmit.setBounds(xScreen+120, y, w, h);
 		panel.add(btnSubmit);
-		btnCancel.setBounds(xScreen+250, 450,100,30);
+		btnCancel.setBounds(xScreen+250, y,w,h);
 		panel.add(btnCancel);
 		btnCancel.addActionListener(this);
+		btnSubmit.addActionListener(this);
+	}
+	
+	
+	
+	public void updateFields() {
+		String sql = "select * from college where collegeId="+collegeIdTextField.getSelectedItem();
+		try {
+			ResultSet result = db.executeQuery(sql);
+			result.next();
+			collegeNameTextField.setText(result.getString(3));
+			locationTextField.setText(result.getString(4));
+			addressTextArea.setText(result.getString(5));
+			String type = result.getString(6);
+			if(type.equals("G"))
+			{
+				govtRadioButton.setSelected(true);
+			}
+			else {
+				privateRadioButton.setSelected(true);
+			}
+			contactTextField.setText(result.getString(7));
+			tradeTextField.setText(result.getString(8));
+			noOfSeatsTextField.setText(result.getString(9));
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} 
+		
+	}
+	
+	public void addId()
+	{
+		String sql="select collegeId from college";
+		ResultSet result;
+		try {
+			result = db.executeQuery(sql);
+			while(result.next())
+			{
+				collegeIdTextField.addItem(String.valueOf(result.getString(1)));
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		updateFields();
+	}
+	
+	public void alter()
+	{
+		String collegeName = collegeNameTextField.getText();
+		String location = locationTextField.getText();
+		String address = addressTextArea.getText();
+		String type;
+		if(govtRadioButton.isSelected())
+		{
+			type="G";
+		}
+		else {
+			type="P";
+		}
+		String contact = contactTextField.getText();
+		String trade = tradeTextField.getText();
+		String seats = noOfSeatsTextField.getText();
+		if(seats.isEmpty() ||collegeName.isEmpty() || location.isEmpty() || address.isEmpty() || contact.isEmpty() || trade.isEmpty())
+		{
+			JOptionPane.showMessageDialog(null,"All fields are Required!","Invalid!",JOptionPane.WARNING_MESSAGE);
+		}
+		else if(!contactTextField.getText().matches("[0-9]+"))
+		{
+			JOptionPane.showMessageDialog(null,"Contact field can contain only numeric values","Error!",JOptionPane.ERROR_MESSAGE);
+		}
+		else if(!noOfSeatsTextField.getText().matches("[0-9]+"))
+		{
+			JOptionPane.showMessageDialog(null,"No. of Seats field can contain only numeric values","Error!",JOptionPane.ERROR_MESSAGE);
+		}
+		else
+		{
+			try {
+				int message = JOptionPane.showConfirmDialog(null, "Alter Changes?","Confirm Alter",JOptionPane.YES_NO_OPTION);
+				if(message == 0)
+				{
+				db.executeUpdate("update college set collegeName='"+collegeName+"',location='"+location+"',address='"+address+"',type='"+type+"',contact='"+contact+"',trade='"+trade+"',seats="+Integer.parseInt(seats)+" where collegeId="+collegeIdTextField.getSelectedItem());
+				updateFields();
+				if(closeOperationCheckBox.isSelected())
+				{
+					this.dispose();
+					try {
+						db.con.close();
+					} catch (SQLException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				}
+				}
+	//			JOptionPane.showMessageDialog(this, "Altered Successfully");
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
 	}
 	
 	public void actionPerformed(ActionEvent e) {
@@ -150,15 +265,20 @@ public class AlterCollege extends JFrame implements ActionListener  {
 		{
 			this.dispose();
 		}
+		if(e.getSource() == btnSubmit)
+		{
+			alter();
+		}
 	}
-	
-	
-	
-//	public static void main(String[] args)
-//	{
-//		AddCollege obj = new AddCollege();
-//		obj.setVisible(true);
-//	}
+
+	@Override
+	public void itemStateChanged(ItemEvent e) {
+		if(e.getSource() == collegeIdTextField)
+		{
+			updateFields();
+		}
+		
+	}
 
 }
 

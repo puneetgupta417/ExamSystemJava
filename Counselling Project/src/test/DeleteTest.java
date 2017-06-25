@@ -1,20 +1,22 @@
 package test;
 
-import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Font;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import javax.swing.*;
 
-public class DeleteTest extends JFrame implements ActionListener {
+import data.Data;
+
+public class DeleteTest extends JFrame implements ActionListener,ItemListener {
 	
 	private String[] labelsName = {"Test ID",
 			"Test Name",
@@ -25,9 +27,10 @@ public class DeleteTest extends JFrame implements ActionListener {
 	private JButton btnSubmit = new JButton("Delete");
 	private JButton btnCancel = new JButton("Cancel");
 	
-	private JComboBox testIdTextField = new JComboBox();
+	private JComboBox<String> testIdTextField = new JComboBox();
 	private JTextField testNameTextField = new JTextField();
 	private JTextArea remarksTextArea = new JTextArea();
+	private JCheckBox closeOperationCheckBox = new JCheckBox("Close Form after Deletion");
 	
 	private Font labelsFont = new Font("Arial",Font.BOLD,16);
 	
@@ -37,16 +40,18 @@ public class DeleteTest extends JFrame implements ActionListener {
 	int screenHeight = gd.getDisplayMode().getHeight();
 	int xScreen = (screenWidth*35)/100;
 	
+	Data db = new Data();
+	
 	public DeleteTest() {
 
 //		JFrame frame = new JFrame("Student Application");
 		
-		ImageIcon icon = new ImageIcon("images//test.jpg");
+		ImageIcon icon = new ImageIcon("images//testBlack.jpg");
 		Image img = icon.getImage();
 		BufferedImage bi = new BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB);
 		Graphics g = bi.createGraphics();
-		float opacity = 0.5f;
-		((Graphics2D) g).setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
+//		float opacity = 0.5f;
+//		((Graphics2D) g).setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
 		g.drawImage(img, 0, 0, screenWidth, screenHeight, null);
 		ImageIcon newIcon = new ImageIcon(bi);
 		
@@ -65,6 +70,7 @@ public class DeleteTest extends JFrame implements ActionListener {
 		printLabels();
 		setButtons();
 		setFields();
+		addId();
 		c.add(panel);
 		panel.add(backgroundImage);
 		setResizable(false);
@@ -99,14 +105,60 @@ public class DeleteTest extends JFrame implements ActionListener {
 		panel.add(testIdTextField);
 		panel.add(testNameTextField);
 		panel.add(remarksTextArea);
+		testIdTextField.addItemListener(this);
 	}
 	
 	private void setButtons() {
-		btnSubmit.setBounds(xScreen+120, 250, 100, 30);
+		int y=250,w=100,h=30;
+		closeOperationCheckBox.setBounds(xScreen+120, y-40, w+100, h);
+		closeOperationCheckBox.setForeground(Color.WHITE);
+		panel.add(closeOperationCheckBox);
+		closeOperationCheckBox.setOpaque(false);
+		btnSubmit.setBounds(xScreen+120, y, w, h);
 		panel.add(btnSubmit);
-		btnCancel.setBounds(xScreen+250, 250,100,30);
+		btnCancel.setBounds(xScreen+250, y,w,h);
 		panel.add(btnCancel);
 		btnCancel.addActionListener(this);
+		btnSubmit.addActionListener(this);
+	}
+	
+	public void updateFields() {
+		String sql = "select * from test where testId="+testIdTextField.getSelectedItem();
+		try {
+			ResultSet result = db.executeQuery(sql);
+			result.next();
+			testNameTextField.setText(result.getString(3));
+			remarksTextArea.setText(result.getString(4));
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} 
+		
+	}
+	
+	public void addId()
+	{
+		String sql="select testId from test";
+		ResultSet result;
+		try {
+			result = db.executeQuery(sql);
+			while(result.next())
+			{
+				testIdTextField.addItem(String.valueOf(result.getString(1)));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		updateFields();
+	}
+	
+	public void delete()
+	{
+		String sql = "delete from test where testId="+testIdTextField.getSelectedItem();
+		try {
+			db.executeUpdate(sql );
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public void actionPerformed(ActionEvent e) {
@@ -114,6 +166,34 @@ public class DeleteTest extends JFrame implements ActionListener {
 		{
 			this.dispose();
 		}
+		if(e.getSource() == btnSubmit)
+		{
+			
+			int message = JOptionPane.showConfirmDialog(null, "Are you really want to Delete?","Confirm Delete",JOptionPane.YES_NO_OPTION);
+			if(message == 0)
+			{
+				delete();
+			}
+			if(closeOperationCheckBox.isSelected())
+			{
+				this.dispose();
+			}
+			else
+			{
+				testIdTextField.removeAllItems();
+				addId();
+			}
+			
+		}
+	}
+
+	@Override
+	public void itemStateChanged(ItemEvent e) {
+		if(e.getSource() == testIdTextField)
+		{
+			updateFields();
+		}
+		
 	}
 	
 }
