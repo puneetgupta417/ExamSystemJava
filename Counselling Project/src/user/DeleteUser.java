@@ -126,6 +126,14 @@ public class DeleteUser extends JFrame implements ActionListener,ItemListener  {
 		panel.add(fullNameTextField);
 		panel.add(designationTextField);
 		panel.add(remarksTextArea);
+		
+		userNameTextField.setEditable(false);
+		fullNameTextField.setEditable(false);
+		passwordField.setEditable(false);
+		confirmPasswordField.setEditable(false);
+		designationTextField.setEditable(false);
+		remarksTextArea.setEditable(false);
+		
 	}
 	
 	private void setButtons() {
@@ -166,12 +174,6 @@ public class DeleteUser extends JFrame implements ActionListener,ItemListener  {
 	}
 	
 	public void delete() {
-		// Get Details
-		String username = userNameTextField.getText();
-		String password = String.valueOf(passwordField.getPassword());
-		String fullName = fullNameTextField.getText();
-		String designation = designationTextField.getText();
-		String remarks = remarksTextArea.getText();
 		
 		Connection con;
 		Statement smt;
@@ -188,8 +190,6 @@ public class DeleteUser extends JFrame implements ActionListener,ItemListener  {
 				this.dispose();
 			}
 			else {
-//				revalidate();
-				confirmPasswordField.setText("");
 				userIdTextField.removeAllItems();
 				addId();
 				updateFieldsByUserId();

@@ -2,10 +2,15 @@ package preferences;
 
 import java.awt.*;
 import javax.swing.*;
+
+import data.Data;
+
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
-public class RegisterPreferences extends JFrame implements ActionListener {
+public class RegisterPreferences extends JFrame implements ActionListener,ItemListener {
 	
 	private String[] labelsName = {"Preference ID",
 			"Student ID",
@@ -32,6 +37,7 @@ public class RegisterPreferences extends JFrame implements ActionListener {
 	Panel panel = new Panel();
 	private JButton btnSubmit = new JButton("Submit");
 	private JButton btnCancel = new JButton("Cancel");
+	private JCheckBox closeOperationCheckBox = new JCheckBox("Close Form after Resgistration");
 	
 	private Font labelsFont = new Font("Arial",Font.BOLD,16);
 	
@@ -41,7 +47,7 @@ public class RegisterPreferences extends JFrame implements ActionListener {
 	int screenHeight = gd.getDisplayMode().getHeight();
 	int xScreen = (screenWidth*20)/100;
 	
-	
+	Data db = new Data();
 	
 	public RegisterPreferences() {
 		Container c = getContentPane();
@@ -85,9 +91,17 @@ public class RegisterPreferences extends JFrame implements ActionListener {
 //		setFields();
 		setPreferences();
 		setButtons();
+		addCollegeIds();
+		addStudentAndShowData();
 		panel.add(backgroundImage);
-		
+
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		
+		for(int i=0; i<5; i++)
+		{
+			collegeIdComboBox[i].addItemListener(this);
+		}
+		studentIdTextField.addItemListener(this);
 	}
 	
 	
@@ -163,11 +177,36 @@ public class RegisterPreferences extends JFrame implements ActionListener {
 	}
 	
 	private void setButtons() {
-		btnSubmit.setBounds(xScreen+320, screenHeight-80, 100, 30);
+		int y=screenHeight-80,w=100,h=30;
+		closeOperationCheckBox.setBounds(xScreen+320, y-30, w+100, h);
+		closeOperationCheckBox.setForeground(Color.WHITE);
+		panel.add(closeOperationCheckBox);
+		closeOperationCheckBox.setOpaque(false);
+		btnSubmit.setBounds(xScreen+320, y, w, h);
 		panel.add(btnSubmit);
-		btnCancel.setBounds(xScreen+450, screenHeight-80,100,30);
+		btnCancel.setBounds(xScreen+450, y,w,h);
 		panel.add(btnCancel);
 		btnCancel.addActionListener(this);
+		btnSubmit.addActionListener(this);
+	}
+	
+	public void addCollegeIds()
+	{
+		String sql="select collegeId from college";
+		try {
+			ResultSet resultCollege = db.executeQuery(sql);
+			while(resultCollege.next())
+			{
+				for(int i=0; i<5; i++)
+				{
+					collegeIdComboBox[i].addItem(String.valueOf(resultCollege.getString(1)));
+					showCollegeData(i);
+				}
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public void actionPerformed(ActionEvent e) {
@@ -175,6 +214,119 @@ public class RegisterPreferences extends JFrame implements ActionListener {
 		{
 			this.dispose();
 		}
+		if(e.getSource() == btnSubmit)
+		{
+			String preferenceId = preferenceIdTextField.getText();
+			int studentId = Integer.parseInt((String) studentIdTextField.getSelectedItem());
+			int pref1 = Integer.valueOf((String)collegeIdComboBox[0].getSelectedItem());
+			int pref2 = Integer.valueOf((String)collegeIdComboBox[1].getSelectedItem());
+			int pref3 = Integer.valueOf((String)collegeIdComboBox[2].getSelectedItem());
+			int pref4 = Integer.valueOf((String)collegeIdComboBox[3].getSelectedItem());
+			int pref5 = Integer.valueOf((String)collegeIdComboBox[4].getSelectedItem());
+			if(preferenceId.isEmpty())
+			{
+				JOptionPane.showMessageDialog(null,"All fields are Required!","Invalid!",JOptionPane.WARNING_MESSAGE);
+			}
+			else
+			{
+				
+				try {
+					db.executeUpdate("insert into preferences(preferenceId,studentId,preference1,preference2,preference3,preference4,preference5) values("+Integer.parseInt(preferenceId)+","+studentId+","+pref1+","+pref2+","+pref3+","+pref4+","+pref5+");");
+					JOptionPane.showMessageDialog(this, "Inserted Successfully");
+					if(closeOperationCheckBox.isSelected())
+					{
+						this.dispose();
+					}
+				} catch (SQLException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+			if(closeOperationCheckBox.isSelected())
+			{
+				this.dispose();
+			}
+		}
+	}
+	
+	public void addStudentAndShowData()
+	{
+		try {
+			ResultSet rs = db.executeQuery("select studentId from student");
+			while(rs.next())
+			{
+			studentIdTextField.addItem(String.valueOf(rs.getInt(1)));
+			}
+			showStudentData();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void showStudentData()
+	{
+		String sql = "select studentName,rank from student where studentId="+studentIdTextField.getSelectedItem();
+		try
+		{
+			ResultSet rs2 = db.executeQuery(sql);
+			rs2.next();
+			studentNameTextField.setText(rs2.getString(1));
+			rankTextField.setText(rs2.getString(2));
+		}
+		catch (SQLException e)
+		{
+			System.out.println(e);
+		}
+	}
+
+	public void showCollegeData(int index) {
+		int id = Integer.valueOf((String) collegeIdComboBox[index].getSelectedItem());
+		String sql="select collegeName,trade from college where collegeId="+id;
+		try {
+			ResultSet result = db.executeQuery(sql);
+			result.next();
+			collegeNameTextField[index].setText(result.getString(1));
+			tradeTextField[index].setText(result.getString(2));
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public void itemStateChanged(ItemEvent e) {
+		// TODO Auto-generated method stub
+		if(e.getSource() == collegeIdComboBox[0])
+		{
+			int index = 0;
+			showCollegeData(index);
+		}
+		else if(e.getSource() == collegeIdComboBox[1])
+		{
+			int index = 1;
+			showCollegeData(index);
+		}
+		else if(e.getSource() == collegeIdComboBox[2])
+		{
+			int index = 2;
+			showCollegeData(index);
+		}
+		else if(e.getSource() == collegeIdComboBox[3])
+		{
+			int index = 3;
+			showCollegeData(index);
+		}
+		else if(e.getSource() == collegeIdComboBox[4])
+		{
+			int index = 4;
+			showCollegeData(index);
+		}
+		else if(e.getSource() == studentIdTextField)
+		{
+			showStudentData();
+		}
+		revalidate();
 	}
 
 

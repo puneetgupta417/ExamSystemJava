@@ -3,11 +3,15 @@ package student;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import javax.swing.*;
 import javax.swing.event.*;
 
-public class DeleteStudent extends JFrame implements ActionListener {
+import data.Data;
+
+public class DeleteStudent extends JFrame implements ActionListener,ItemListener {
 
 	
 	private String[] labelsName = {"Student's ID",
@@ -40,8 +44,10 @@ public class DeleteStudent extends JFrame implements ActionListener {
 	private ButtonGroup genderButtonGroup = new ButtonGroup();
 	private JRadioButton maleRadioButton = new JRadioButton("Male");
 	private JRadioButton femaleRadioButton = new JRadioButton("Female");
-	private JComboBox testComboBox = new JComboBox();
-	private JComboBox categoryComboBox = new JComboBox();
+	private JTextField testIdField = new JTextField();
+	private String[] categoryString= {"General","SC","BC"};
+	private JComboBox<String> categoryComboBox = new JComboBox<String>(categoryString);
+	private JCheckBox closeOperationCheckBox = new JCheckBox("Close Form after Deletion");
 	
 	private Font labelsFont = new Font("Arial",Font.BOLD,16);
 	
@@ -51,6 +57,7 @@ public class DeleteStudent extends JFrame implements ActionListener {
 	int screenHeight = gd.getDisplayMode().getHeight();
 	int xScreen = (screenWidth*35)/100;
 	
+	Data db = new Data(); 
 	
 	public void showStudentForm() {
 		
@@ -79,6 +86,8 @@ public class DeleteStudent extends JFrame implements ActionListener {
 		printLabels();
 		setButtons();
 		setFields();
+		addId();
+		updateFields();
 		c.add(panel);
 		panel.add(backgroundImage);
 		setResizable(false);
@@ -86,6 +95,8 @@ public class DeleteStudent extends JFrame implements ActionListener {
 		// setting frame in maximized state
 //		setExtendedState(java.awt.Frame.MAXIMIZED_BOTH);
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		
+		studentIdTextField.addItemListener(this);
 	}
 	
 	private void printLabels() {
@@ -120,7 +131,7 @@ public class DeleteStudent extends JFrame implements ActionListener {
 		DOBTextField.setBounds(x,y+(5*spacing),width,height);
 		addressTextArea.setBounds(x,y+(6*spacing),width,height+25);
 		contactTextField.setBounds(x,y+(8*spacing),width,height);
-		testComboBox.setBounds(x,y+(9*spacing),width,height);
+		testIdField.setBounds(x,y+(9*spacing),width,height);
 		rankTextField.setBounds(x,y+(10*spacing),width,height);
 		categoryComboBox.setBounds(x,y+(11*spacing),width,height);
 		remarksTextArea.setBounds(x,y+(12*spacing),width,height+25);
@@ -133,7 +144,7 @@ public class DeleteStudent extends JFrame implements ActionListener {
 		panel.add(DOBTextField);
 		panel.add(addressTextArea);
 		panel.add(contactTextField);
-		panel.add(testComboBox);
+		panel.add(testIdField);
 		panel.add(rankTextField);
 		panel.add(categoryComboBox);
 		panel.add(remarksTextArea);
@@ -142,14 +153,103 @@ public class DeleteStudent extends JFrame implements ActionListener {
 		femaleRadioButton.setOpaque(false);
 		maleRadioButton.setForeground(Color.WHITE);
 		femaleRadioButton.setForeground(Color.WHITE);
+		
+		studentNameTextField.setEditable(false);
+		fatherNameTextField.setEditable(false);
+		motherNameTextField.setEditable(false);
+		maleRadioButton.setEnabled(false);
+		femaleRadioButton.setEnabled(false);
+		DOBTextField.setEditable(false);
+		addressTextArea.setEditable(false);
+		contactTextField.setEditable(false);
+		testIdField.setEditable(false);
+		rankTextField.setEditable(false);
+		categoryComboBox.setEnabled(false);
+		remarksTextArea.setEditable(false);
 	}
 	
 	private void setButtons() {
-		btnSubmit.setBounds(xScreen+120, 600, 100, 30);
+		int y=600,w=100,h=30;
+		closeOperationCheckBox.setBounds(xScreen+120, y-40, w+100, h);
+		closeOperationCheckBox.setForeground(Color.WHITE);
+		panel.add(closeOperationCheckBox);
+		closeOperationCheckBox.setOpaque(false);
+		btnSubmit.setBounds(xScreen+120, y, w, h);
 		panel.add(btnSubmit);
-		btnCancel.setBounds(xScreen+250, 600,100,30);
+		btnCancel.setBounds(xScreen+250, y,w,h);
 		panel.add(btnCancel);
 		btnCancel.addActionListener(this);
+		btnSubmit.addActionListener(this);
+	}
+	
+	public void addId() {
+		
+			ResultSet rs;
+			try {
+				rs = db.executeQuery("select studentId from student");
+				while(rs.next())
+				{
+				studentIdTextField.addItem(String.valueOf(rs.getInt(1)));
+				}
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	}
+	
+	public void updateFields() {
+		String sql = "select * from student where studentId="+studentIdTextField.getSelectedItem();
+		try {
+			ResultSet result = db.executeQuery(sql);
+			result.next();
+			studentNameTextField.setText(result.getString(3));
+			fatherNameTextField.setText(result.getString(4));
+			motherNameTextField.setText(result.getString(5));
+			String gender = result.getString(6);
+			if(gender.equals("M"))
+			{
+				maleRadioButton.setSelected(true);
+			}
+			else {
+				femaleRadioButton.setSelected(true);
+			}
+			DOBTextField.setText(result.getString(7));
+			addressTextArea.setText(result.getString(8));
+			contactTextField.setText(result.getString(9));
+			testIdField.setText(result.getString(10));
+			rankTextField.setText(result.getString(11));
+			categoryComboBox.setSelectedItem(String.valueOf(result.getString(12)));
+			remarksTextArea.setText(result.getString(13));
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} 
+		
+	}
+	
+	public void delete()
+	{
+			
+			try {
+				int message = JOptionPane.showConfirmDialog(null, "Are you really want to Delete?","Confirm Delete",JOptionPane.YES_NO_OPTION);
+				if(message == 0)
+				{
+					db.executeUpdate("delete from student where studentId="+studentIdTextField.getSelectedItem());
+					studentIdTextField.removeItem(studentIdTextField.getSelectedItem());
+					if(closeOperationCheckBox.isSelected())
+					{
+						this.dispose();
+						try {
+							db.con.close();
+						} catch (SQLException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+					}
+				}
+ 			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 	}
 	
 	public void actionPerformed(ActionEvent e) {
@@ -157,6 +257,20 @@ public class DeleteStudent extends JFrame implements ActionListener {
 		{
 			this.dispose();
 		}
+		if(e.getSource() == btnSubmit)
+		{
+			delete();
+			
+		}
+	}
+
+	@Override
+	public void itemStateChanged(ItemEvent e) {
+		if(e.getSource() == studentIdTextField)
+		{
+			updateFields();
+		}
+		
 	}
 	
 	public DeleteStudent() {

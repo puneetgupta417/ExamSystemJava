@@ -3,11 +3,19 @@ package student;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Arrays;
 
 import javax.swing.*;
 import javax.swing.event.*;
 
-public class AlterStudent extends JFrame implements ActionListener {
+import data.Data;
+
+public class AlterStudent extends JFrame implements ActionListener,ItemListener {
 
 	
 	private String[] labelsName = {"Student's ID",
@@ -23,6 +31,8 @@ public class AlterStudent extends JFrame implements ActionListener {
 			"Category",
 			"Remarks"
 			};
+	
+	private String[] categoryString= {"General","SC","BC"};
 
 	private JPanel panel = new JPanel();
 	private JButton btnSubmit = new JButton("Alter");
@@ -40,8 +50,10 @@ public class AlterStudent extends JFrame implements ActionListener {
 	private ButtonGroup genderButtonGroup = new ButtonGroup();
 	private JRadioButton maleRadioButton = new JRadioButton("Male");
 	private JRadioButton femaleRadioButton = new JRadioButton("Female");
-	private JComboBox testComboBox = new JComboBox();
-	private JComboBox categoryComboBox = new JComboBox();
+	private JComboBox<String> testComboBox = new JComboBox<String>();
+	private JComboBox<String> categoryComboBox = new JComboBox<String>(categoryString);
+	private JCheckBox closeOperationCheckBox = new JCheckBox("Close Form after Alteration");
+	
 	
 	private Font labelsFont = new Font("Arial",Font.BOLD,16);
 	
@@ -51,6 +63,7 @@ public class AlterStudent extends JFrame implements ActionListener {
 	int screenHeight = gd.getDisplayMode().getHeight();
 	int xScreen = (screenWidth*35)/100;
 	
+	Data db = new Data();
 	
 	public void showStudentForm() {
 		
@@ -79,6 +92,10 @@ public class AlterStudent extends JFrame implements ActionListener {
 		printLabels();
 		setButtons();
 		setFields();
+		addId();
+		addTestId();
+
+		updateFields();
 		c.add(panel);
 		panel.add(backgroundImage);
 		setResizable(false);
@@ -142,14 +159,95 @@ public class AlterStudent extends JFrame implements ActionListener {
 		femaleRadioButton.setOpaque(false);
 		maleRadioButton.setForeground(Color.WHITE);
 		femaleRadioButton.setForeground(Color.WHITE);
+		studentIdTextField.addItemListener(this);
 	}
 	
 	private void setButtons() {
-		btnSubmit.setBounds(xScreen+120, 600, 100, 30);
+		int y=600,w=100,h=30;
+		closeOperationCheckBox.setBounds(xScreen+120, y-40, w+100, h);
+		closeOperationCheckBox.setForeground(Color.WHITE);
+		panel.add(closeOperationCheckBox);
+		closeOperationCheckBox.setOpaque(false);
+		btnSubmit.setBounds(xScreen+120, y, w, h);
 		panel.add(btnSubmit);
-		btnCancel.setBounds(xScreen+250, 600,100,30);
+		btnCancel.setBounds(xScreen+250, y,w,h);
 		panel.add(btnCancel);
 		btnCancel.addActionListener(this);
+		btnSubmit.addActionListener(this);
+	}
+	
+	public void addId() {
+		
+			ResultSet rs;
+			try {
+				rs = db.executeQuery("select studentId from student");
+				while(rs.next())
+				{
+				studentIdTextField.addItem(String.valueOf(rs.getInt(1)));
+				}
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	}
+	
+	public void alter()
+	{
+		String studentId = (String) studentIdTextField.getSelectedItem();
+		String studentName = studentNameTextField.getText();
+		String fatherName = fatherNameTextField.getText();
+		String motherName = motherNameTextField.getText();
+		String gender;
+		if(maleRadioButton.isSelected())
+		{
+			gender = "M";
+		}
+		else{
+			gender = "F";
+		}
+		String DOB = DOBTextField.getText();
+		String address = addressTextArea.getText();
+		String contact = contactTextField.getText();
+		int testId = Integer.parseInt((String) testComboBox.getSelectedItem());
+//		int testId = 1;
+		String rank = rankTextField.getText();
+		String category = categoryComboBox.getSelectedItem().toString();
+//		String category = "general";
+		String remarks = remarksTextArea.getText();
+		
+		if(studentName.isEmpty() || fatherName.isEmpty() || motherName.isEmpty() || DOB.isEmpty() || address.isEmpty() || rank.isEmpty() || contact.isEmpty())
+		{
+			JOptionPane.showMessageDialog(null,"All fields are Required!","Invalid!",JOptionPane.WARNING_MESSAGE);
+		}
+		else if(!contactTextField.getText().matches("[0-9]+"))
+		{
+			JOptionPane.showMessageDialog(null,"Contact field can contain only numeric values","Error!",JOptionPane.ERROR_MESSAGE);
+		}
+		else
+		{
+			try {
+				int message = JOptionPane.showConfirmDialog(null, "Alter Changes?","Confirm Alter",JOptionPane.YES_NO_OPTION);
+				if(message == 0)
+				{
+				db.executeUpdate("update student set studentName='"+studentName+"', fatherName='"+fatherName+"', motherName='"+motherName+"', gender='"+gender+"', DOB='"+DOB+"', address='"+address+"',contact='"+contact+"',testId="+testId+",rank='"+rank+"', category='"+category+"', remarks='"+remarks+"' where studentId="+studentId);
+				updateFields();
+				if(closeOperationCheckBox.isSelected())
+				{
+					this.dispose();
+					try {
+						db.con.close();
+					} catch (SQLException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				}
+				}
+	//			JOptionPane.showMessageDialog(this, "Altered Successfully");
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
 	}
 	
 	public void actionPerformed(ActionEvent e) {
@@ -157,8 +255,69 @@ public class AlterStudent extends JFrame implements ActionListener {
 		{
 			this.dispose();
 		}
+		if(e.getSource() == btnSubmit)
+		{
+			alter();
+		}
+	}
+
+
+
+	public void updateFields() {
+		String sql = "select * from student where studentId="+studentIdTextField.getSelectedItem();
+		try {
+			ResultSet result = db.executeQuery(sql);
+			result.next();
+			studentNameTextField.setText(result.getString(3));
+			fatherNameTextField.setText(result.getString(4));
+			motherNameTextField.setText(result.getString(5));
+			String gender = result.getString(6);
+			if(gender.equals("M"))
+			{
+				maleRadioButton.setSelected(true);
+			}
+			else {
+				femaleRadioButton.setSelected(true);
+			}
+			DOBTextField.setText(result.getString(7));
+			addressTextArea.setText(result.getString(8));
+			contactTextField.setText(result.getString(9));
+			testComboBox.setSelectedItem(result.getString(10));
+			rankTextField.setText(result.getString(11));
+			categoryComboBox.setSelectedItem(String.valueOf(result.getString(12)));
+			remarksTextArea.setText(result.getString(13));
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} 
+		
 	}
 	
+	public void addTestId()
+	{
+		String sql="select testId from test";
+		ResultSet result;
+		try {
+			result = db.executeQuery(sql);
+			while(result.next())
+			{
+				testComboBox.addItem(String.valueOf(result.getString(1)));
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public void itemStateChanged(ItemEvent e) {
+		if(e.getSource() == studentIdTextField)
+		{
+			updateFields();
+		}
+		
+		
+	}
+
 	public AlterStudent() {
 		showStudentForm();
 	}

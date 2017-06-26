@@ -44,9 +44,10 @@ public class RegisterStudent extends JFrame implements ActionListener {
 	private ButtonGroup genderButtonGroup = new ButtonGroup();
 	private JRadioButton maleRadioButton = new JRadioButton("Male");
 	private JRadioButton femaleRadioButton = new JRadioButton("Female");
-	private JComboBox testComboBox = new JComboBox();
-	private JComboBox categoryComboBox = new JComboBox();
-	
+	private JComboBox<String> testComboBox = new JComboBox<String>();
+	private String[] categoryString= {"General","SC","BC"};
+	private JComboBox<String> categoryComboBox = new JComboBox<String>(categoryString);
+	private JCheckBox closeOperationCheckBox = new JCheckBox("Close Form after Registration");
 	private Font labelsFont = new Font("Arial",Font.BOLD,16);
 	
 	// Get user Screen Resolution
@@ -55,6 +56,7 @@ public class RegisterStudent extends JFrame implements ActionListener {
 	int screenHeight = gd.getDisplayMode().getHeight();
 	int xScreen = (screenWidth*35)/100;
 	
+	Data db = new Data();
 	
 	public void showStudentForm() {
 		
@@ -83,6 +85,8 @@ public class RegisterStudent extends JFrame implements ActionListener {
 		printLabels();
 		setButtons();
 		setFields();
+		addTestId();
+		
 		c.add(panel);
 		panel.add(backgroundImage);
 		setResizable(false);
@@ -149,9 +153,14 @@ public class RegisterStudent extends JFrame implements ActionListener {
 	}
 	
 	private void setButtons() {
-		btnSubmit.setBounds(xScreen+120, 600, 100, 30);
+		int y=600,w=100,h=30;
+		closeOperationCheckBox.setBounds(xScreen+120, y-40, w+100, h);
+		closeOperationCheckBox.setForeground(Color.WHITE);
+		panel.add(closeOperationCheckBox);
+		closeOperationCheckBox.setOpaque(false);
+		btnSubmit.setBounds(xScreen+120, y, w, h);
 		panel.add(btnSubmit);
-		btnCancel.setBounds(xScreen+250, 600,100,30);
+		btnCancel.setBounds(xScreen+250, y,w,h);
 		panel.add(btnCancel);
 		btnCancel.addActionListener(this);
 		btnSubmit.addActionListener(this);
@@ -179,29 +188,46 @@ public class RegisterStudent extends JFrame implements ActionListener {
 			String DOB = DOBTextField.getText();
 			String address = addressTextArea.getText();
 			String contact = contactTextField.getText();
-//			int testId = Integer.valueOf(testComboBox.getSelectedIndex());
-			int testId = 1;
+			int testId = Integer.parseInt((String) testComboBox.getSelectedItem());
 			String rank = rankTextField.getText();
-//			String category = categoryComboBox.getSelectedItem().toString();
-			String category = "general";
+			String category = categoryComboBox.getSelectedItem().toString();
 			String remarks = remarksTextArea.getText();
 //			Data obj = new Data();
-			Connection con;
-			Statement smt;
 			try {
-				Class.forName("net.ucanaccess.jdbc.UcanaccessDriver");
-				con=DriverManager.getConnection("jdbc:ucanaccess://database.accdb");
-				smt=con.createStatement();
-				smt.executeUpdate("insert into student(studentId,studentName,fatherName,motherName,gender,DOB,address,contact,testId,rank,category,remarks) values("+studentId+",'"+studentName+"','"+fatherName+"','"+motherName+"','"+gender+"','"+DOB+"','"+address+"','"+contact+"',"+testId+",'"+rank+"','"+category+"','"+remarks+"');");
-				con.close();
+				db.executeUpdate("insert into student(studentId,studentName,fatherName,motherName,gender,DOB,address,contact,testId,rank,category,remarks) values("+studentId+",'"+studentName+"','"+fatherName+"','"+motherName+"','"+gender+"','"+DOB+"','"+address+"','"+contact+"',"+testId+",'"+rank+"','"+category+"','"+remarks+"');");
 				JOptionPane op=new JOptionPane();
-				op.showMessageDialog(this,"Your Data is Updated");
-				this.dispose();
+				op.showMessageDialog(this,"Registered Successfully.","Success",JOptionPane.INFORMATION_MESSAGE);
+				if(closeOperationCheckBox.isSelected())
+				{
+					this.dispose();
+					try {
+						db.con.close();
+					} catch (SQLException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				}
 			} 
 			catch(Exception e1)
 			{
 				System.out.println("hi"+e1);
 			}
+		}
+	}
+	
+	public void addTestId()
+	{
+		String sql="select testId from test";
+		ResultSet result;
+		try {
+			result = db.executeQuery(sql);
+			while(result.next())
+			{
+				testComboBox.addItem(String.valueOf(result.getString(1)));
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 	

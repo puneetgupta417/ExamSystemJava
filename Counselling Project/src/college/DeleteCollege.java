@@ -219,24 +219,19 @@ public class DeleteCollege extends JFrame implements ActionListener,ItemListener
 				int message = JOptionPane.showConfirmDialog(null, "Are you really want to Delete?","Confirm Delete",JOptionPane.YES_NO_OPTION);
 				if(message == 0)
 				{
-				db.executeUpdate("delete from college where collegeId="+collegeIdTextField.getSelectedItem());
-				if(closeOperationCheckBox.isSelected())
-				{
-					this.dispose();
-					try {
-						db.con.close();
-					} catch (SQLException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
+					db.executeUpdate("delete from college where collegeId="+collegeIdTextField.getSelectedItem());
+					collegeIdTextField.removeItem(collegeIdTextField.getSelectedItem());
+					if(closeOperationCheckBox.isSelected())
+					{
+						this.dispose();
+						try {
+							db.con.close();
+						} catch (SQLException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
 					}
 				}
-				else {
-					collegeIdTextField.removeAllItems();
-					addId();
-					updateFields();
-				}
-				}
-	//			JOptionPane.showMessageDialog(this, "Altered Successfully");
 			} catch (SQLException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
